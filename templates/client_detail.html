@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}{{ client['full_name'] }} — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="{{ url_for('dashboard') }}">← Back to Clients</a>
+</div>
+
+<!-- Client Info -->
+<div class="card">
+    <div class="page-header" style="margin-bottom:12px;">
+        <h2>{{ client['full_name'] }}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('add_case', client_id=client['id']) }}" class="btn btn-success btn-sm">+ Add Case</a>
+            <a href="{{ url_for('add_transaction', client_id=client['id']) }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+            <a href="{{ url_for('edit_client', client_id=client['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('delete_client', client_id=client['id']) }}"
+                  onsubmit="return confirm('Delete this client and all their cases?');">
+                <button type="submit" class="btn btn-danger btn-sm">Delete Client</button>
+            </form>
+        </div>
+    </div>
+    <table style="width:auto;">
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Phone</strong></td>
+            <td>{{ client['phone'] }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>WhatsApp</strong></td>
+            <td>{{ client['whatsapp_number'] or '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Email</strong></td>
+            <td>{{ client['email'] or '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>ID Number</strong></td>
+            <td>{{ client['id_number'] or '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Address</strong></td>
+            <td>{{ client['address'] or '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>VAT Number</strong></td>
+            <td>
+                {% if client['vat_number'] %}
+                <span id="vat-value">{{ client['vat_number'] }}</span>
+                <button type="button"
+                        onclick="navigator.clipboard.writeText('{{ client['vat_number'] }}').then(function(){ var b=document.getElementById('vat-copy-btn'); b.textContent='Copied!'; setTimeout(function(){ b.textContent='Copy'; }, 1500); })"
+                        id="vat-copy-btn"
+                        style="margin-left:8px;padding:2px 10px;font-size:12px;cursor:pointer;border:1px solid #bbb;border-radius:4px;background:#f5f5f5;">
+                    Copy
+                </button>
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- Cases -->
+<div class="page-header" style="margin-top:24px;">
+    <h2 style="font-size:18px;">Cases</h2>
+    <a href="{{ url_for('add_case', client_id=client['id']) }}" class="btn btn-primary btn-sm">+ Add Case</a>
+</div>
+
+<div class="card">
+    {% if cases %}
+    <table>
+        <thead>
+            <tr>
+                <th>Case Code</th>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Opened</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for case in cases %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('case_detail', case_id=case['id']) }}" style="color:#2980b9;font-weight:600;">
+                        {{ case['case_code'] }}
+                    </a>
+                </td>
+                <td>{{ case['case_reference'] or '—' }}</td>
+                <td>{{ case['case_type'] }}</td>
+                <td>
+                    {% if case['status'] == 'new' %}
+                        <span class="badge badge-new">New</span>
+                    {% elif case['status'] == 'in progress' %}
+                        <span class="badge badge-in-progress">In Progress</span>
+                    {% else %}
+                        <span class="badge badge-closed">Closed</span>
+                    {% endif %}
+                </td>
+                <td>{{ case['opened_at'].strftime('%Y-%m-%d') if case['opened_at'] else '—' }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('case_detail', case_id=case['id']) }}" class="btn btn-primary btn-sm">View</a>
+                    <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <a href="{{ url_for('add_transaction', client_id=client['id']) }}?case_id={{ case['id'] }}" class="btn btn-secondary btn-sm">Add Tx</a>
+                    <a href="{{ url_for('add_activity', case_id=case['id']) }}" class="btn btn-secondary btn-sm">Add Activity</a>
+                    <form method="POST" action="{{ url_for('delete_case', case_id=case['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete case {{ case['case_code'] }}?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#777;">No cases yet. <a href="{{ url_for('add_case', client_id=client['id']) }}">Add the first case</a>.</p>
+    {% endif %}
+</div>
+
+<!-- Transactions -->
+<div class="page-header" style="margin-top:24px;">
+    <h2 style="font-size:18px;">Transactions
+        <span style="font-size:14px;font-weight:600;margin-left:12px;{% if balance > 0 %}color:#27ae60;{% elif balance < 0 %}color:#e74c3c;{% else %}color:#777;{% endif %}">
+            Balance:
+            {% if balance > 0 %}+€{{ "%.2f"|format(balance) }}{% elif balance < 0 %}-€{{ "%.2f"|format(balance|abs) }}{% else %}€0.00{% endif %}
+        </span>
+    </h2>
+    <a href="{{ url_for('add_transaction', client_id=client['id']) }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+</div>
+
+<div class="card">
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Case</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td style="white-space:nowrap;">{{ tx['date'].strftime('%Y-%m-%d %H:%M') if tx['date'] else '—' }}</td>
+                <td>
+                    {% if tx['type'] == 'payment' %}
+                        <span style="color:#27ae60;font-weight:600;">Payment</span>
+                    {% else %}
+                        <span style="color:#e74c3c;font-weight:600;">Expense</span>
+                    {% endif %}
+                </td>
+                <td style="font-weight:600;{% if tx['type'] == 'payment' %}color:#27ae60;{% else %}color:#e74c3c;{% endif %}">
+                    {% if tx['type'] == 'payment' %}+{% else %}-{% endif %}€{{ "%.2f"|format(tx['amount']) }}
+                </td>
+                <td>
+                    {% if tx['case_code'] %}
+                    <a href="{{ url_for('case_detail', case_id=tx['case_id']) }}" style="color:#2980b9;">{{ tx['case_code'] }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ tx['note'] or '—' }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('edit_transaction', tx_id=tx['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this transaction?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#777;">No transactions yet. <a href="{{ url_for('add_transaction', client_id=client['id']) }}">Add the first transaction</a>.</p>
+    {% endif %}
+</div>
+
+<!-- Activities -->
+<div class="page-header" style="margin-top:24px;">
+    <h2 style="font-size:18px;">Activities</h2>
+    {% if cases %}
+    <a href="{{ url_for('add_activity_global') }}?client_id={{ client['id'] }}" class="btn btn-primary btn-sm">+ Add Activity</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    {% if activities %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Case</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Time</th>
+                <th>Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in activities %}
+            <tr>
+                <td style="white-space:nowrap;">{{ act['activity_date'].strftime('%Y-%m-%d %H:%M') if act['activity_date'] else '—' }}</td>
+                <td>
+                    <a href="{{ url_for('case_detail', case_id=act['case_id']) }}" style="color:#2980b9;font-weight:600;">
+                        {{ act['case_code'] }}
+                    </a>
+                </td>
+                <td>
+                    <span style="background:#f0f3f7;padding:2px 8px;border-radius:12px;font-size:12px;">
+                        {{ act['activity_type'] }}
+                    </span>
+                </td>
+                <td>{{ act['title'] }}</td>
+                <td style="white-space:nowrap;color:#555;">
+                    {% if act['duration_minutes'] %}
+                        {% if act['duration_minutes'] >= 60 %}{{ act['duration_minutes'] // 60 }}h {{ act['duration_minutes'] % 60 }}m
+                        {% else %}{{ act['duration_minutes'] }} min{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="{% if act['price'] %}color:#2980b9;font-weight:600;{% else %}color:#aaa;{% endif %}">
+                    {% if act['price'] %}€{{ "%.2f"|format(act['price']) }}{% else %}—{% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('edit_activity', activity_id=act['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_activity', activity_id=act['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this activity?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% elif cases %}
+    <p style="color:#777;">No activities yet. <a href="{{ url_for('add_activity_global') }}?client_id={{ client['id'] }}">Add the first activity</a>.</p>
+    {% else %}
+    <p style="color:#777;">Create a case first before adding activities.</p>
+    {% endif %}
+</div>
+{% endblock %}

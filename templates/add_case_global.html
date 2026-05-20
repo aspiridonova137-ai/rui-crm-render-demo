@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Add Case — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="{{ url_for('cases_list') }}">← Back to Cases</a>
+</div>
+
+<div class="page-header">
+    <h1>Add Case</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="client_id">Client <span style="color:#e74c3c;">*</span></label>
+            <select id="client_id" name="client_id" required autofocus>
+                <option value="">— Select client —</option>
+                {% for c in clients %}
+                <option value="{{ c['id'] }}">{{ c['full_name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Continue</button>
+            <a href="{{ url_for('cases_list') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

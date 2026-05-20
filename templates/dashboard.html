@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Clients</h1>
+</div>
+
+<!-- Quick Actions -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+    <a href="{{ url_for('add_client') }}" class="btn btn-success">+ Add Client</a>
+    <a href="{{ url_for('add_case_global') }}" class="btn btn-primary">+ Add Case</a>
+    <a href="{{ url_for('add_transaction_global') }}" class="btn btn-secondary">+ Add Transaction</a>
+    <a href="{{ url_for('add_activity_global') }}" class="btn btn-secondary">+ Add Activity</a>
+</div>
+
+<!-- Needs Attention -->
+{% if uncovered_count > 0 or inactive_cases_count > 0 %}
+<div style="margin-bottom:20px;">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+                color:#888;margin-bottom:8px;">⚠ Needs Attention</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+        {% if uncovered_count > 0 %}
+        <a href="{{ url_for('dashboard', bf='uncovered') }}"
+           style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+                  background:#fff8ec;border:1px solid #f0a500;border-radius:6px;
+                  text-decoration:none;color:#7d4e00;min-width:220px;flex:1;max-width:340px;">
+            <span style="font-size:22px;line-height:1;">⚠</span>
+            <div>
+                <div style="font-weight:700;font-size:14px;">
+                    {{ uncovered_count }} client{{ 's' if uncovered_count != 1 }} with uncovered expenses
+                </div>
+                <div style="font-size:12px;color:#a06000;margin-top:2px;">Click to view →</div>
+            </div>
+        </a>
+        {% endif %}
+
+        {% if inactive_cases_count > 0 %}
+        <a href="{{ url_for('cases_list') }}"
+           style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+                  background:#eef4fb;border:1px solid #aed6f1;border-radius:6px;
+                  text-decoration:none;color:#1a3a5c;min-width:220px;flex:1;max-width:340px;">
+            <span style="font-size:22px;line-height:1;">💤</span>
+            <div>
+                <div style="font-weight:700;font-size:14px;">
+                    {{ inactive_cases_count }} case{{ 's' if inactive_cases_count != 1 }} inactive for 7+ days
+                </div>
+                <div style="font-size:12px;color:#2471a3;margin-top:2px;">Click to view cases →</div>
+            </div>
+        </a>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+<!-- Summary -->
+<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#1e8449;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Positive</div>
+        <div style="font-size:20px;font-weight:700;color:#27ae60;">+€{{ "%.2f"|format(summary.total_positive) }}</div>
+    </div>
+    <div style="background:#fdedec;border:1px solid #f1948a;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#922b21;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Negative</div>
+        <div style="font-size:20px;font-weight:700;color:#e74c3c;">-€{{ "%.2f"|format(summary.total_negative|abs) }}</div>
+    </div>
+    <div style="background:#eaf2ff;border:1px solid #aed6f1;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#1a5276;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Open Balances</div>
+        <div style="font-size:20px;font-weight:700;color:#2980b9;">{{ summary.open_count }}</div>
+    </div>
+    {% if summary.total_uncovered > 0 %}
+    <div style="background:#fdedec;border:2px solid #e74c3c;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#922b21;font-weight:600;text-transform:uppercase;margin-bottom:4px;">⚠ Uncovered Total</div>
+        <div style="font-size:20px;font-weight:700;color:#e74c3c;">€{{ "%.2f"|format(summary.total_uncovered) }}</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search + Balance Filter -->
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+    <form class="search-bar" method="GET" action="{{ url_for('dashboard') }}" style="margin:0;flex:1;min-width:200px;">
+        <input type="hidden" name="bf" value="{{ balance_filter }}" />
+        <input type="text" name="q" value="{{ search }}" placeholder="Search by client name…" />
+        <button type="submit" class="btn btn-primary">Search</button>
+        {% if search %}
+        <a href="{{ url_for('dashboard') }}?bf={{ balance_filter }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Balance Filter Tabs -->
+<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+    {% for label, value in [('All', 'all'), ('Positive', 'positive'), ('Negative', 'negative'), ('Zero', 'zero')] %}
+    <a href="{{ url_for('dashboard') }}{% if search %}?q={{ search }}&bf={{ value }}{% else %}?bf={{ value }}{% endif %}"
+       style="padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+              {% if balance_filter == value %}
+                background:#2c3e50;color:#fff;border-color:#2c3e50;
+              {% else %}
+                background:#fff;color:#555;border-color:#ccd0d5;
+              {% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('dashboard') }}{% if search %}?q={{ search }}&bf=uncovered{% else %}?bf=uncovered{% endif %}"
+       style="padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+              {% if balance_filter == 'uncovered' %}
+                background:#e74c3c;color:#fff;border-color:#e74c3c;
+              {% else %}
+                background:#fff;color:#e74c3c;border-color:#f1948a;
+              {% endif %}">
+        ⚠ Uncovered
+    </a>
+</div>
+
+<div class="card">
+    {% if client_list %}
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Cases</th>
+                <th>Balance</th>
+                <th>Uncovered</th>
+                <th>Last Activity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in client_list %}
+            {% set c = item.client %}
+            <tr class="tr-link"
+                data-href="{{ url_for('client_detail', client_id=c['id']) }}"
+                {% if item.uncovered > 0 %}style="background:#fff8f8;"{% endif %}>
+                <td class="col-trunc">
+                    <a href="{{ url_for('client_detail', client_id=c['id']) }}" style="color:#2980b9;font-weight:600;" title="{{ c['full_name'] }}">
+                        {{ c['full_name'] }}
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">{{ c['phone'] or '—' }}</td>
+                <td class="col-trunc">{{ c['email'] or '—' }}</td>
+                <td>{{ item.case_count }}</td>
+                <td style="white-space:nowrap;font-weight:600;{% if item.balance > 0 %}color:#27ae60;{% elif item.balance < 0 %}color:#e74c3c;{% else %}color:#aaa;{% endif %}">
+                    {% if item.balance > 0 %}+€{{ "%.2f"|format(item.balance) }}{% elif item.balance < 0 %}-€{{ "%.2f"|format(item.balance|abs) }}{% else %}<span style="color:#aaa;">€0.00</span>{% endif %}
+                </td>
+                <td>
+                    {% if item.uncovered > 0 %}
+                        <span class="uncov-badge">€{{ "%.2f"|format(item.uncovered) }}</span>
+                    {% else %}
+                        <span style="color:#bbb;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.last_activity %}
+                        <span class="last-act-date">{{ item.last_activity.strftime('%Y-%m-%d') }}</span>
+                    {% else %}
+                        <span class="last-act-none">—</span>
+                    {% endif %}
+                </td>
+                <td class="col-actions">
+                    <a href="{{ url_for('client_detail', client_id=c['id']) }}" class="btn btn-primary btn-sm">View</a>
+                    <a href="{{ url_for('add_case', client_id=c['id']) }}" class="btn btn-success btn-sm">Case</a>
+                    <a href="{{ url_for('add_transaction', client_id=c['id']) }}" class="btn btn-secondary btn-sm">Tx</a>
+                    <a href="{{ url_for('edit_client', client_id=c['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_client', client_id=c['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete {{ c['full_name'] }}? This will also delete all their cases.');">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+        {% if search or balance_filter != 'all' %}
+        <div class="empty-state">
+            <p>No clients match the current filters.</p>
+            <a href="{{ url_for('dashboard') }}">Clear filters</a>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p style="font-size:17px;font-weight:600;color:#555;">No clients yet</p>
+            <p><a href="{{ url_for('add_client') }}">Add your first client →</a></p>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

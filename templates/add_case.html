@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Add Case — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="{{ url_for('client_detail', client_id=client['id']) }}">← Back to {{ client['full_name'] }}</a>
+</div>
+
+<div class="page-header">
+    <h1>Add Case for {{ client['full_name'] }}</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="case_code">Case Code <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="case_code" name="case_code" placeholder="e.g. CASE-001" autofocus required />
+        </div>
+        <div class="form-group">
+            <label for="case_reference">Case Reference <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="case_reference" name="case_reference" placeholder="e.g. REF-2024-001" />
+        </div>
+        <div class="form-group">
+            <label for="case_type">Case Type <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="case_type" name="case_type" placeholder="e.g. contract, residency, visa" required />
+        </div>
+        <div class="form-group">
+            <label for="general_court">General Court <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="general_court" name="general_court" placeholder="e.g. Civil Court, Administrative Court" />
+        </div>
+        <div class="form-group">
+            <label for="court_department">Court Department <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="court_department" name="court_department" placeholder="e.g. Department 3, Section B" />
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="new">New</option>
+                <option value="in progress">In Progress</option>
+                <option value="closed">Closed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="closed_at">Closed At <span style="color:#999;">(optional)</span></label>
+            <input type="datetime-local" id="closed_at" name="closed_at" />
+        </div>
+        <div class="form-group">
+            <label>Additional Clients <span style="color:#999;">(optional)</span></label>
+            <p style="color:#777;font-size:12px;margin-bottom:6px;">
+                <strong>{{ client['full_name'] }}</strong> is the primary client. Hold Ctrl / ⌘ to select additional linked clients.
+            </p>
+            <select name="client_ids" multiple
+                    style="width:100%;min-height:90px;padding:6px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                {% for c in all_clients %}
+                {% if c['id'] != client['id'] %}
+                <option value="{{ c['id'] }}">{{ c['full_name'] }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Save Case</button>
+            <a href="{{ url_for('client_detail', client_id=client['id']) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Edit Case — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="{{ url_for('case_detail', case_id=case['id']) }}">← Back to {{ case['case_code'] }}</a>
+</div>
+
+<div class="page-header">
+    <h1>Edit Case</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="case_code">Case Code <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="case_code" name="case_code" value="{{ case['case_code'] }}" required />
+        </div>
+        <div class="form-group">
+            <label for="case_reference">Case Reference <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="case_reference" name="case_reference" value="{{ case['case_reference'] or '' }}" />
+        </div>
+        <div class="form-group">
+            <label for="case_type">Case Type <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="case_type" name="case_type" value="{{ case['case_type'] }}" required />
+        </div>
+        <div class="form-group">
+            <label for="general_court">General Court <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="general_court" name="general_court" value="{{ case['general_court'] or '' }}" />
+        </div>
+        <div class="form-group">
+            <label for="court_department">Court Department <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="court_department" name="court_department" value="{{ case['court_department'] or '' }}" />
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="new" {% if case['status'] == 'new' %}selected{% endif %}>New</option>
+                <option value="in progress" {% if case['status'] == 'in progress' %}selected{% endif %}>In Progress</option>
+                <option value="closed" {% if case['status'] == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="closed_at">Closed At <span style="color:#999;">(optional)</span></label>
+            <input type="datetime-local" id="closed_at" name="closed_at"
+                   value="{{ case['closed_at'].strftime('%Y-%m-%dT%H:%M') if case['closed_at'] else '' }}" />
+        </div>
+        <div class="form-group">
+            <label>Clients <span style="color:#e74c3c;">*</span></label>
+            <p style="color:#777;font-size:12px;margin-bottom:6px;">Hold Ctrl / ⌘ to select multiple. At least one must remain selected.</p>
+            <select name="client_ids" multiple
+                    style="width:100%;min-height:90px;padding:6px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                {% for c in all_clients %}
+                <option value="{{ c['id'] }}"
+                        {% if c['id'] in case_client_ids %}selected{% endif %}>
+                    {{ c['full_name'] }}{% if c['id'] == case['client_id'] %} (primary){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Update Case</button>
+            <a href="{{ url_for('case_detail', case_id=case['id']) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

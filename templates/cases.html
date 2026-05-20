@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Cases — CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>All Cases</h1>
+</div>
+
+<!-- Quick Actions -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+    <a href="{{ url_for('add_client') }}" class="btn btn-secondary">+ Add Client</a>
+    <a href="{{ url_for('add_case_global') }}" class="btn btn-success">+ Add Case</a>
+    <a href="{{ url_for('add_transaction_global') }}" class="btn btn-primary">+ Add Transaction</a>
+    <a href="{{ url_for('add_activity_global') }}" class="btn btn-primary">+ Add Activity</a>
+</div>
+
+<!-- Summary -->
+<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#1e8449;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Positive</div>
+        <div style="font-size:20px;font-weight:700;color:#27ae60;">+€{{ "%.2f"|format(summary.total_positive) }}</div>
+    </div>
+    <div style="background:#fdedec;border:1px solid #f1948a;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#922b21;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Negative</div>
+        <div style="font-size:20px;font-weight:700;color:#e74c3c;">-€{{ "%.2f"|format(summary.total_negative|abs) }}</div>
+    </div>
+    <div style="background:#eaf2ff;border:1px solid #aed6f1;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#1a5276;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Open Balances</div>
+        <div style="font-size:20px;font-weight:700;color:#2980b9;">{{ summary.open_count }}</div>
+    </div>
+    {% if summary.total_uncovered > 0 %}
+    <div style="background:#fdedec;border:2px solid #e74c3c;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#922b21;font-weight:600;text-transform:uppercase;margin-bottom:4px;">⚠ Uncovered Total</div>
+        <div style="font-size:20px;font-weight:700;color:#e74c3c;">€{{ "%.2f"|format(summary.total_uncovered) }}</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Balance Filter Tabs -->
+<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+    {% for label, value in [('All', 'all'), ('Positive', 'positive'), ('Negative', 'negative'), ('Zero', 'zero')] %}
+    <a href="{{ url_for('cases_list') }}?bf={{ value }}"
+       style="padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+              {% if balance_filter == value %}
+                background:#2c3e50;color:#fff;border-color:#2c3e50;
+              {% else %}
+                background:#fff;color:#555;border-color:#ccd0d5;
+              {% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('cases_list') }}?bf=uncovered"
+       style="padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+              {% if balance_filter == 'uncovered' %}
+                background:#e74c3c;color:#fff;border-color:#e74c3c;
+              {% else %}
+                background:#fff;color:#e74c3c;border-color:#f1948a;
+              {% endif %}">
+        ⚠ Uncovered
+    </a>
+</div>
+
+<div class="card">
+    {% if cases %}
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Case Code</th>
+                <th>Client</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Balance</th>
+                <th>Uncovered</th>
+                <th>Opened</th>
+                <th>Last Activity</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for case in cases %}
+            <tr class="tr-link"
+                data-href="{{ url_for('case_detail', case_id=case['id']) }}"
+                {% if case['uncovered'] > 0 %}style="background:#fff8f8;"{% endif %}>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('case_detail', case_id=case['id']) }}" style="color:#2980b9;font-weight:600;">
+                        {{ case['case_code'] }}
+                    </a>
+                </td>
+                <td class="col-trunc" title="{{ case['clients_display'] }}">
+                    <a href="{{ url_for('client_detail', client_id=case['client_id']) }}" style="color:#2980b9;">
+                        {{ case['clients_display'] }}
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">{{ case['case_type'] }}</td>
+                <td>
+                    {% if case['status'] == 'new' %}
+                        <span class="badge badge-new">New</span>
+                    {% elif case['status'] == 'in progress' %}
+                        <span class="badge badge-in-progress">In Progress</span>
+                    {% else %}
+                        <span class="badge badge-closed">Closed</span>
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;font-weight:600;{% if case['balance'] > 0 %}color:#27ae60;{% elif case['balance'] < 0 %}color:#e74c3c;{% else %}color:#aaa;{% endif %}">
+                    {% if case['balance'] > 0 %}+€{{ "%.2f"|format(case['balance']) }}{% elif case['balance'] < 0 %}-€{{ "%.2f"|format(case['balance']|abs) }}{% else %}<span style="color:#aaa;">€0.00</span>{% endif %}
+                </td>
+                <td>
+                    {% if case['uncovered'] > 0 %}
+                        <span class="uncov-badge">€{{ "%.2f"|format(case['uncovered']) }}</span>
+                    {% else %}
+                        <span style="color:#bbb;">—</span>
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;color:#777;font-size:13px;">{{ case['opened_at'].strftime('%Y-%m-%d') if case['opened_at'] else '—' }}</td>
+                <td>
+                    {% if case['last_activity'] %}
+                        <span class="last-act-date">{{ case['last_activity'].strftime('%Y-%m-%d') }}</span>
+                    {% else %}
+                        <span class="last-act-none">—</span>
+                    {% endif %}
+                </td>
+                <td class="col-actions">
+                    <a href="{{ url_for('case_detail', case_id=case['id']) }}" class="btn btn-primary btn-sm">View</a>
+                    <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <a href="{{ url_for('add_transaction', client_id=case['client_id']) }}?case_id={{ case['id'] }}" class="btn btn-secondary btn-sm">Tx</a>
+                    <a href="{{ url_for('add_activity', case_id=case['id']) }}" class="btn btn-secondary btn-sm">Act</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+        {% if balance_filter != 'all' %}
+        <div class="empty-state">
+            <p>No cases match the current filter.</p>
+            <a href="{{ url_for('cases_list') }}">Clear filter</a>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p style="font-size:17px;font-weight:600;color:#555;">No cases yet</p>
+            <p><a href="{{ url_for('add_case_global') }}">Add the first case →</a></p>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

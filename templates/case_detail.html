@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}{{ case['case_code'] }} — CRM{% endblock %}
+
+{% block content %}
+<!-- Top navigation + actions -->
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+    <a href="{{ url_for('cases_list') }}" class="btn btn-secondary btn-sm">← All Cases</a>
+    <a href="{{ url_for('client_detail', client_id=case['client_id']) }}" class="btn btn-secondary btn-sm">{{ case['full_name'] }}</a>
+    <span style="color:#ccc;">|</span>
+    <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn btn-secondary btn-sm">Edit Case</a>
+    <a href="{{ url_for('add_transaction', client_id=case['client_id']) }}?case_id={{ case['id'] }}" class="btn btn-primary btn-sm">+ Add Transaction</a>
+    <a href="{{ url_for('add_activity', case_id=case['id']) }}" class="btn btn-primary btn-sm">+ Add Activity</a>
+</div>
+
+<!-- Case Info -->
+<div class="card">
+    <div class="page-header" style="margin-bottom:12px;">
+        <h2>{{ case['case_code'] }}</h2>
+        <span style="font-size:15px;font-weight:600;{% if balance > 0 %}color:#27ae60;{% elif balance < 0 %}color:#e74c3c;{% else %}color:#777;{% endif %}">
+            Balance:
+            {% if balance > 0 %}+€{{ "%.2f"|format(balance) }}{% elif balance < 0 %}-€{{ "%.2f"|format(balance|abs) }}{% else %}€0.00{% endif %}
+        </span>
+    </div>
+    <table style="width:auto;">
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Client{{ 's' if case_clients_list|length > 1 }}</strong></td>
+            <td>
+                {% for cl in case_clients_list %}
+                <a href="{{ url_for('client_detail', client_id=cl['id']) }}" style="color:#2980b9;">{{ cl['full_name'] }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Type</strong></td>
+            <td>{{ case['case_type'] }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Status</strong></td>
+            <td>
+                {% if case['status'] == 'new' %}
+                    <span class="badge badge-new">New</span>
+                {% elif case['status'] == 'in progress' %}
+                    <span class="badge badge-in-progress">In Progress</span>
+                {% else %}
+                    <span class="badge badge-closed">Closed</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% if case['case_reference'] %}
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Reference</strong></td>
+            <td>{{ case['case_reference'] }}</td>
+        </tr>
+        {% endif %}
+        {% if case['general_court'] %}
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>General Court</strong></td>
+            <td>{{ case['general_court'] }}</td>
+        </tr>
+        {% endif %}
+        {% if case['court_department'] %}
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Department</strong></td>
+            <td>{{ case['court_department'] }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Opened</strong></td>
+            <td>{{ case['opened_at'].strftime('%Y-%m-%d %H:%M') if case['opened_at'] else '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 24px 6px 0;color:#555;font-size:13px;"><strong>Closed</strong></td>
+            <td>{{ case['closed_at'].strftime('%Y-%m-%d %H:%M') if case['closed_at'] else '—' }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Activities -->
+<div class="page-header" style="margin-top:24px;">
+    <h2 style="font-size:18px;">Activities</h2>
+    <a href="{{ url_for('add_activity', case_id=case['id']) }}" class="btn btn-primary btn-sm">+ Add Activity</a>
+</div>
+
+<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+    <div style="background:#f8f9fb;border:1px solid #e1e4e8;border-radius:6px;padding:10px 20px;min-width:150px;">
+        <div style="font-size:11px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Activity Time</div>
+        <div style="font-size:20px;font-weight:700;color:#2c3e50;margin-top:4px;">
+            {% if act_total_minutes >= 60 %}
+                {{ act_total_minutes // 60 }}h {{ act_total_minutes % 60 }}m
+            {% elif act_total_minutes > 0 %}
+                {{ act_total_minutes }} min
+            {% else %}
+                <span style="color:#aaa;font-size:15px;">—</span>
+            {% endif %}
+        </div>
+    </div>
+    <div style="background:#f8f9fb;border:1px solid #e1e4e8;border-radius:6px;padding:10px 20px;min-width:150px;">
+        <div style="font-size:11px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Activity Value</div>
+        <div style="font-size:20px;font-weight:700;{% if act_total_price > 0 %}color:#2980b9;{% else %}color:#aaa;font-size:15px;{% endif %}margin-top:4px;">
+            {% if act_total_price > 0 %}€{{ "%.2f"|format(act_total_price) }}{% else %}—{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    {% if activities %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Time</th>
+                <th>Price</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in activities %}
+            <tr {% if act['price'] %}style="background:#fafeff;"{% endif %}>
+                <td style="white-space:nowrap;">{{ act['activity_date'].strftime('%Y-%m-%d %H:%M') if act['activity_date'] else '—' }}</td>
+                <td>
+                    <span style="background:#f0f3f7;padding:2px 8px;border-radius:12px;font-size:12px;">
+                        {{ act['activity_type'] }}
+                    </span>
+                </td>
+                <td>{{ act['title'] }}</td>
+                <td style="white-space:nowrap;color:#555;">
+                    {% if act['duration_minutes'] %}
+                        {% if act['duration_minutes'] >= 60 %}
+                            {{ act['duration_minutes'] // 60 }}h {{ act['duration_minutes'] % 60 }}m
+                        {% else %}
+                            {{ act['duration_minutes'] }} min
+                        {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="white-space:nowrap;{% if act['price'] %}color:#2980b9;font-weight:600;{% else %}color:#aaa;{% endif %}">
+                    {% if act['price'] %}€{{ "%.2f"|format(act['price']) }}{% else %}—{% endif %}
+                </td>
+                <td>{{ act['note'] or '—' }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('edit_activity', activity_id=act['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_activity', activity_id=act['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this activity?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#777;">No activities recorded yet.
+        <a href="{{ url_for('add_activity', case_id=case['id']) }}">Add the first activity</a>.
+    </p>
+    {% endif %}
+</div>
+
+<!-- Transactions -->
+<div class="page-header" style="margin-top:24px;">
+    <h2 style="font-size:18px;">Transactions</h2>
+    <a href="{{ url_for('add_transaction', client_id=case['client_id']) }}?case_id={{ case['id'] }}"
+       class="btn btn-primary btn-sm">+ Add Transaction</a>
+</div>
+
+<div class="card">
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td style="white-space:nowrap;">{{ tx['date'].strftime('%Y-%m-%d %H:%M') if tx['date'] else '—' }}</td>
+                <td>
+                    {% if tx['type'] == 'payment' %}
+                        <span style="color:#27ae60;font-weight:600;">Payment</span>
+                    {% else %}
+                        <span style="color:#e74c3c;font-weight:600;">Expense</span>
+                    {% endif %}
+                </td>
+                <td style="font-weight:600;{% if tx['type'] == 'payment' %}color:#27ae60;{% else %}color:#e74c3c;{% endif %}">
+                    {% if tx['type'] == 'payment' %}+{% else %}-{% endif %}€{{ "%.2f"|format(tx['amount']) }}
+                </td>
+                <td>{{ tx['note'] or '—' }}</td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('edit_transaction', tx_id=tx['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this transaction?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#777;">No transactions for this case yet.
+        <a href="{{ url_for('add_transaction', client_id=case['client_id']) }}?case_id={{ case['id'] }}">Add one</a>.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

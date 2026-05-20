@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Edit Transaction — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="javascript:history.back()">← Back</a>
+</div>
+
+<div class="page-header">
+    <h1>Edit Transaction</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="type">Type <span style="color:#e74c3c;">*</span></label>
+            <select id="type" name="type" required>
+                <option value="payment" {% if tx['type'] == 'payment' %}selected{% endif %}>Payment (money received from client)</option>
+                <option value="expense" {% if tx['type'] == 'expense' %}selected{% endif %}>Expense (money spent for client)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount <span style="color:#e74c3c;">*</span></label>
+            <input type="number" id="amount" name="amount" step="0.01" min="0.01"
+                   value="{{ "%.2f"|format(tx['amount']) }}" required />
+        </div>
+        <div class="form-group">
+            <label for="date">Date <span style="color:#999;">(optional — leave blank to keep current)</span></label>
+            <input type="datetime-local" id="date" name="date"
+                   value="{{ tx['date'].strftime('%Y-%m-%dT%H:%M') if tx['date'] else '' }}" />
+        </div>
+        <div class="form-group">
+            <label for="case_id">Related Case <span style="color:#999;">(optional)</span></label>
+            <select id="case_id" name="case_id">
+                <option value="">— None —</option>
+                {% for case in cases %}
+                <option value="{{ case['id'] }}" {% if tx['case_id'] == case['id'] %}selected{% endif %}>
+                    {{ case['case_code'] }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="note">Note <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="note" name="note" value="{{ tx['note'] or '' }}" />
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Update Transaction</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

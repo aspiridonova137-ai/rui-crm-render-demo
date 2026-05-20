@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Add Client — CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Add New Client</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="full_name">Full Name <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="full_name" name="full_name" placeholder="e.g. John Smith" autofocus required />
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone Number <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="phone" name="phone" placeholder="e.g. +1 555 123 4567" />
+        </div>
+        <div class="form-group">
+            <label for="whatsapp_number">WhatsApp Number <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="whatsapp_number" name="whatsapp_number" placeholder="e.g. +1 555 123 4567" />
+        </div>
+        <div class="form-group">
+            <label for="email">Email <span style="color:#999;">(optional)</span></label>
+            <input type="email" id="email" name="email" placeholder="e.g. john@example.com" />
+        </div>
+        <div class="form-group">
+            <label for="id_number">ID Number <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="id_number" name="id_number" placeholder="e.g. passport or national ID" />
+        </div>
+        <div class="form-group">
+            <label for="address">Address <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="address" name="address" placeholder="e.g. 123 Main St, City" />
+        </div>
+        <div class="form-group">
+            <label for="vat_number">VAT Number <span style="color:#999;">(optional)</span></label>
+            <input type="text" id="vat_number" name="vat_number" placeholder="e.g. GB123456789" />
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Save Client</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

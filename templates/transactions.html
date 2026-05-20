@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Transactions — CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>All Transactions</h1>
+    <a href="{{ url_for('add_transaction_global') }}" class="btn btn-success">+ Add Transaction</a>
+</div>
+
+<!-- Filter panel -->
+<div class="card" style="padding:16px 24px;margin-bottom:0;">
+    <form method="GET" action="{{ url_for('transactions_list') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Client</label>
+            <select name="client_id" style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                <option value="">All clients</option>
+                {% for c in clients %}
+                <option value="{{ c['id'] }}" {% if filter_client == c['id']|string %}selected{% endif %}>{{ c['full_name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Case</label>
+            <select name="case_id" style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                <option value="">All cases</option>
+                {% for c in cases %}
+                <option value="{{ c['id'] }}" {% if filter_case == c['id']|string %}selected{% endif %}>{{ c['case_code'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Type</label>
+            <select name="type" style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                <option value="" {% if not filter_type %}selected{% endif %}>All types</option>
+                <option value="payment" {% if filter_type == 'payment' %}selected{% endif %}>Payment</option>
+                <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Expense</option>
+            </select>
+        </div>
+        <div style="min-width:130px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">From</label>
+            <input type="date" name="date_from" value="{{ filter_date_from }}"
+                   style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;" />
+        </div>
+        <div style="min-width:130px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">To</label>
+            <input type="date" name="date_to" value="{{ filter_date_to }}"
+                   style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('transactions_list') }}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+
+    <!-- Quick filter tabs -->
+    <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+        {% set base = url_for('transactions_list') %}
+        {% set date_qs %}{% if filter_date_from %}&date_from={{ filter_date_from }}{% endif %}{% if filter_date_to %}&date_to={{ filter_date_to }}{% endif %}{% endset %}
+        {% set ctx_qs %}{% if filter_client %}&client_id={{ filter_client }}{% endif %}{% if filter_case %}&case_id={{ filter_case }}{% endif %}{{ date_qs }}{% endset %}
+        {% for label, value in [('All', ''), ('Only Payments', 'payment'), ('Only Expenses', 'expense')] %}
+        <a href="{{ base }}?type={{ value }}{{ ctx_qs }}"
+           style="padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+                  {% if filter_type == value %}background:#2c3e50;color:#fff;border-color:#2c3e50;
+                  {% else %}background:#fff;color:#555;border-color:#ccd0d5;{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+        <a href="{{ base }}?type=uncovered{{ ctx_qs }}"
+           style="padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid;
+                  {% if filter_type == 'uncovered' %}background:#e74c3c;color:#fff;border-color:#e74c3c;
+                  {% else %}background:#fff;color:#e74c3c;border-color:#f1948a;{% endif %}">
+            ⚠ Uncovered Expenses
+        </a>
+    </div>
+</div>
+
+<!-- Summary totals -->
+<div style="display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap;margin-top:16px;">
+    <div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#1e8449;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Payments</div>
+        <div style="font-size:20px;font-weight:700;color:#27ae60;">+€{{ "%.2f"|format(total_payments) }}</div>
+    </div>
+    <div style="background:#fdedec;border:1px solid #f1948a;border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;color:#922b21;font-weight:600;text-transform:uppercase;margin-bottom:4px;">Total Expenses</div>
+        <div style="font-size:20px;font-weight:700;color:#e74c3c;">-€{{ "%.2f"|format(total_expenses) }}</div>
+    </div>
+    <div style="background:{% if net >= 0 %}#eafaf1;border:1px solid #a9dfbf;{% else %}#fdedec;border:1px solid #f1948a;{% endif %}border-radius:6px;padding:12px 20px;min-width:160px;">
+        <div style="font-size:12px;font-weight:600;text-transform:uppercase;margin-bottom:4px;{% if net >= 0 %}color:#1e8449;{% else %}color:#922b21;{% endif %}">Net</div>
+        <div style="font-size:20px;font-weight:700;{% if net >= 0 %}color:#27ae60;{% else %}color:#e74c3c;{% endif %}">
+            {% if net >= 0 %}+{% else %}-{% endif %}€{{ "%.2f"|format(net|abs) }}
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    {% if transactions %}
+    <p style="color:#777;font-size:13px;margin-bottom:12px;">
+        {{ transactions|length }} transaction{{ '' if transactions|length == 1 else 's' }}{% if filter_client or filter_case or filter_type or filter_date_from or filter_date_to %} matching current filters{% endif %}
+    </p>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Case</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr class="tr-link" data-href="{{ url_for('edit_transaction', tx_id=tx['id']) }}">
+                <td style="white-space:nowrap;">{{ tx['date'].strftime('%Y-%m-%d') if tx['date'] else '—' }}</td>
+                <td class="col-trunc">
+                    <a href="{{ url_for('client_detail', client_id=tx['client_id']) }}" style="color:#2980b9;" title="{{ tx['full_name'] }}">
+                        {{ tx['full_name'] }}
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">
+                    {% if tx['case_id'] %}
+                    <a href="{{ url_for('case_detail', case_id=tx['case_id']) }}" style="color:#2980b9;font-weight:600;">
+                        {{ tx['case_code'] }}
+                    </a>
+                    {% else %}—{% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    {% if tx['type'] == 'payment' %}
+                        <span style="color:#27ae60;font-weight:600;">Payment</span>
+                    {% else %}
+                        <span style="color:#e74c3c;font-weight:600;">Expense</span>
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;font-weight:600;{% if tx['type'] == 'payment' %}color:#27ae60;{% else %}color:#e74c3c;{% endif %}">
+                    {% if tx['type'] == 'payment' %}+{% else %}-{% endif %}€{{ "%.2f"|format(tx['amount']) }}
+                </td>
+                <td class="col-trunc">{{ tx['note'] or '—' }}</td>
+                <td class="col-actions">
+                    <a href="{{ url_for('edit_transaction', tx_id=tx['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_transaction', tx_id=tx['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this transaction?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p style="color:#777;">
+        {% if filter_client or filter_case or filter_type or filter_date_from or filter_date_to %}
+        No transactions match the current filters.
+        {% else %}
+        No transactions yet. <a href="{{ url_for('add_transaction_global') }}">Add the first transaction</a>.
+        {% endif %}
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

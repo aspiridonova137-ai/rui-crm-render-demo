@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Edit Activity — CRM{% endblock %}
+
+{% block content %}
+<div class="back-link" style="margin-bottom:16px;">
+    <a href="{{ url_for('case_detail', case_id=activity['case_id']) }}">← Back to Case</a>
+</div>
+
+<div class="page-header">
+    <h1>Edit Activity</h1>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="activity_type">Activity Type <span style="color:#e74c3c;">*</span></label>
+            <input list="activity_types" id="activity_type" name="activity_type"
+                   value="{{ activity['activity_type'] }}" required />
+            <datalist id="activity_types">
+                <option value="Call">
+                <option value="Email">
+                <option value="Document">
+                <option value="Meeting">
+                <option value="Research">
+                <option value="Follow-up">
+                <option value="Court submission">
+                <option value="Internal note">
+                <option value="Other">
+            </datalist>
+        </div>
+        <div class="form-group">
+            <label for="title">Title <span style="color:#e74c3c;">*</span></label>
+            <input type="text" id="title" name="title" value="{{ activity['title'] }}" required />
+        </div>
+        <div class="form-group">
+            <label for="activity_date">Date <span style="color:#999;">(leave blank to keep current)</span></label>
+            <input type="datetime-local" id="activity_date" name="activity_date"
+                   value="{{ activity['activity_date'].strftime('%Y-%m-%dT%H:%M') if activity['activity_date'] else '' }}" />
+        </div>
+        <div style="display:flex;gap:16px;">
+            <div class="form-group" style="flex:1;">
+                <label for="duration_minutes">Time spent <span style="color:#999;">(minutes, optional)</span></label>
+                <input type="number" id="duration_minutes" name="duration_minutes"
+                       min="1" max="9999"
+                       value="{{ activity['duration_minutes'] if activity['duration_minutes'] else '' }}" />
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label for="price">Price <span style="color:#999;">(optional)</span></label>
+                <input type="number" id="price" name="price" min="0" step="0.01"
+                       value="{{ '%.2f'|format(activity['price']) if activity['price'] else '' }}" />
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="note">Note <span style="color:#999;">(optional)</span></label>
+            <textarea id="note" name="note" rows="3"
+                      style="width:100%;padding:8px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;resize:vertical;">{{ activity['note'] or '' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Update Activity</button>
+            <a href="{{ url_for('case_detail', case_id=activity['case_id']) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

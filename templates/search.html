@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Search — CRM{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
+    <h1 style="font-size:22px;font-weight:700;">
+        Search{% if q %}: <span style="color:#2980b9;">{{ q }}</span>{% endif %}
+    </h1>
+    {% if q %}
+    <span style="color:#666;font-size:13px;">
+        {{ clients|length }} client{{ 's' if clients|length != 1 }}
+        &nbsp;·&nbsp;
+        {{ cases|length }} case{{ 's' if cases|length != 1 }}
+    </span>
+    {% endif %}
+</div>
+
+{# ── Search bar (re-shown on results page) ── #}
+<form action="{{ url_for('search') }}" method="get"
+      style="display:flex;gap:8px;align-items:center;margin-bottom:20px;">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search clients or cases…"
+           autofocus
+           style="flex:1;max-width:420px;padding:8px 12px;border:1px solid #ccd0d5;
+                  border-radius:4px;font-size:14px;" />
+    <button type="submit"
+            style="padding:8px 16px;background:#2980b9;color:#fff;border:none;
+                   border-radius:4px;font-size:14px;cursor:pointer;">Search</button>
+
+    {# Filter tabs #}
+    {% if q %}
+    <span style="margin-left:8px;color:#666;font-size:13px;">Filter:</span>
+    {% for label, val in [('All','all'),('Clients','clients'),('Cases','cases')] %}
+    <a href="{{ url_for('search', q=q, f=val) }}"
+       style="font-size:13px;padding:6px 12px;border-radius:4px;text-decoration:none;
+              background:{{ '#2c3e50' if f == val else '#e8eaed' }};
+              color:{{ '#fff' if f == val else '#444' }};">
+        {{ label }}
+    </a>
+    {% endfor %}
+    {% endif %}
+</form>
+
+{% if not q %}
+<p style="color:#666;margin-top:32px;text-align:center;">Enter a search term above to find clients or cases.</p>
+
+{% elif clients|length == 0 and cases|length == 0 %}
+<p style="color:#666;margin-top:32px;text-align:center;">No results found for <strong>{{ q }}</strong>.</p>
+
+{% else %}
+
+{# ── Clients section ── #}
+{% if clients %}
+<h2 style="font-size:16px;font-weight:700;margin-bottom:10px;
+            padding-bottom:6px;border-bottom:2px solid #2980b9;color:#2c3e50;">
+    Clients <span style="font-weight:normal;color:#666;">({{ clients|length }})</span>
+</h2>
+<div style="overflow-x:auto;margin-bottom:32px;">
+<table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <thead>
+        <tr style="background:#f4f6f8;text-align:left;">
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Name</th>
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Phone</th>
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Email</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for cl in clients %}
+        <tr style="border-bottom:1px solid #eee;cursor:pointer;"
+            onclick="location.href='{{ url_for('client_detail', client_id=cl['id']) }}'">
+            <td style="padding:8px 12px;">
+                <a href="{{ url_for('client_detail', client_id=cl['id']) }}"
+                   style="color:#2980b9;font-weight:600;">{{ cl['full_name'] }}</a>
+            </td>
+            <td style="padding:8px 12px;color:#555;">{{ cl['phone'] or '—' }}</td>
+            <td style="padding:8px 12px;color:#555;">{{ cl['email'] or '—' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% elif f == 'all' %}
+<p style="color:#888;font-size:13px;margin-bottom:28px;">No matching clients.</p>
+{% endif %}
+
+{# ── Cases section ── #}
+{% if cases %}
+<h2 style="font-size:16px;font-weight:700;margin-bottom:10px;
+            padding-bottom:6px;border-bottom:2px solid #27ae60;color:#2c3e50;">
+    Cases <span style="font-weight:normal;color:#666;">({{ cases|length }})</span>
+</h2>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <thead>
+        <tr style="background:#f4f6f8;text-align:left;">
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Case Code</th>
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Type</th>
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Client(s)</th>
+            <th style="padding:8px 12px;border-bottom:1px solid #dde1e7;">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for ca in cases %}
+        <tr style="border-bottom:1px solid #eee;cursor:pointer;"
+            onclick="location.href='{{ url_for('case_detail', case_id=ca['id']) }}'">
+            <td style="padding:8px 12px;">
+                <a href="{{ url_for('case_detail', case_id=ca['id']) }}"
+                   style="color:#2980b9;font-weight:600;">{{ ca['case_code'] }}</a>
+            </td>
+            <td style="padding:8px 12px;color:#555;">{{ ca['case_type'] }}</td>
+            <td style="padding:8px 12px;color:#555;">{{ ca['clients_display'] }}</td>
+            <td style="padding:8px 12px;">
+                {% if ca['status'] == 'new' %}
+                    <span style="background:#d5e8f8;color:#1a6fa3;padding:2px 8px;border-radius:10px;font-size:12px;">New</span>
+                {% elif ca['status'] == 'open' %}
+                    <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:10px;font-size:12px;">Open</span>
+                {% elif ca['status'] == 'closed' %}
+                    <span style="background:#f5f5f5;color:#666;padding:2px 8px;border-radius:10px;font-size:12px;">Closed</span>
+                {% else %}
+                    <span style="background:#f0f0f0;color:#555;padding:2px 8px;border-radius:10px;font-size:12px;">{{ ca['status'] }}</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% elif f == 'all' %}
+<p style="color:#888;font-size:13px;">No matching cases.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

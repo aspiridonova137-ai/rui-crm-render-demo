@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Activities — CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>All Activities</h1>
+    <a href="{{ url_for('add_activity_global') }}" class="btn btn-success">+ Add Activity</a>
+</div>
+
+<!-- Filters -->
+<div class="card" style="padding:16px 24px;">
+    <form method="GET" action="{{ url_for('activities_list') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Client</label>
+            <select name="client_id" style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                <option value="">All clients</option>
+                {% for c in clients %}
+                <option value="{{ c['id'] }}" {% if filter_client == c['id']|string %}selected{% endif %}>{{ c['full_name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Case</label>
+            <select name="case_id" style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;">
+                <option value="">All cases</option>
+                {% for c in cases %}
+                <option value="{{ c['id'] }}" {% if filter_case == c['id']|string %}selected{% endif %}>{{ c['case_code'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="flex:1;min-width:140px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Type</label>
+            <input type="text" name="atype" value="{{ filter_type }}" placeholder="e.g. Call"
+                   style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;" />
+        </div>
+        <div style="min-width:130px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">From</label>
+            <input type="date" name="date_from" value="{{ filter_date_from }}"
+                   style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;" />
+        </div>
+        <div style="min-width:130px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">To</label>
+            <input type="date" name="date_to" value="{{ filter_date_to }}"
+                   style="width:100%;padding:7px 10px;border:1px solid #ccd0d5;border-radius:4px;font-size:14px;" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ url_for('activities_list') }}" class="btn btn-secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+    <div style="background:#f8f9fb;border:1px solid #e1e4e8;border-radius:6px;padding:10px 20px;min-width:150px;">
+        <div style="font-size:11px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Time</div>
+        <div style="font-size:20px;font-weight:700;color:#2c3e50;margin-top:4px;">
+            {% if total_minutes >= 60 %}{{ total_minutes // 60 }}h {{ total_minutes % 60 }}m
+            {% elif total_minutes > 0 %}{{ total_minutes }} min
+            {% else %}<span style="color:#aaa;font-size:15px;">—</span>{% endif %}
+        </div>
+    </div>
+    <div style="background:#f8f9fb;border:1px solid #e1e4e8;border-radius:6px;padding:10px 20px;min-width:150px;">
+        <div style="font-size:11px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Value</div>
+        <div style="font-size:20px;font-weight:700;{% if total_price > 0 %}color:#2980b9;{% else %}color:#aaa;font-size:15px;{% endif %}margin-top:4px;">
+            {% if total_price > 0 %}€{{ "%.2f"|format(total_price) }}{% else %}—{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    {% if activities %}
+    <p style="color:#777;font-size:13px;margin-bottom:12px;">{{ activities|length }} activit{{ 'y' if activities|length == 1 else 'ies' }} found</p>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Case</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Time</th>
+                <th>Price</th>
+                <th>Note</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in activities %}
+            <tr class="tr-link" data-href="{{ url_for('edit_activity', activity_id=act['id']) }}" {% if act['price'] %}style="background:#fafeff;"{% endif %}>
+                <td style="white-space:nowrap;">{{ act['activity_date'].strftime('%Y-%m-%d') if act['activity_date'] else '—' }}</td>
+                <td class="col-trunc">
+                    <a href="{{ url_for('client_detail', client_id=act['client_id']) }}" style="color:#2980b9;" title="{{ act['full_name'] }}">
+                        {{ act['full_name'] }}
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">
+                    <a href="{{ url_for('case_detail', case_id=act['case_id']) }}" style="color:#2980b9;font-weight:600;">
+                        {{ act['case_code'] }}
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">
+                    <span style="background:#f0f3f7;padding:2px 8px;border-radius:12px;font-size:12px;">
+                        {{ act['activity_type'] }}
+                    </span>
+                </td>
+                <td class="col-trunc" title="{{ act['title'] }}">{{ act['title'] }}</td>
+                <td style="white-space:nowrap;color:#555;">
+                    {% if act['duration_minutes'] %}
+                        {% if act['duration_minutes'] >= 60 %}{{ act['duration_minutes'] // 60 }}h {{ act['duration_minutes'] % 60 }}m
+                        {% else %}{{ act['duration_minutes'] }}m{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="white-space:nowrap;{% if act['price'] %}color:#2980b9;font-weight:600;{% else %}color:#aaa;{% endif %}">
+                    {% if act['price'] %}€{{ "%.2f"|format(act['price']) }}{% else %}—{% endif %}
+                </td>
+                <td class="col-trunc">{{ act['note'] or '—' }}</td>
+                <td class="col-actions">
+                    <a href="{{ url_for('case_detail', case_id=act['case_id']) }}" class="btn btn-primary btn-sm">Case</a>
+                    <a href="{{ url_for('edit_activity', activity_id=act['id']) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_activity', activity_id=act['id']) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this activity?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p style="color:#777;">No activities found{% if filter_client or filter_case or filter_type or filter_date_from or filter_date_to %} matching the current filters{% endif %}.</p>
+    {% endif %}
+</div>
+{% endblock %}
