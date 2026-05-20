@@ -132,3 +132,63 @@ python app.py
 ```
 
 Open `http://localhost:5000`.
+
+## Docker deployment on Render
+
+The native Python Render deployment still works. Docker is optional and uses the same Flask app, same external PostgreSQL database settings, and same environment variables.
+
+Docker image behavior:
+
+- Base image: `python:3.11-slim`
+- Work directory: `/app`
+- Installs `requirements.txt` first, then copies the project
+- Exposes port `8000`
+- Starts with `gunicorn app:app`
+- Binds to `0.0.0.0:${PORT:-8000}` so Render can provide `PORT`, while local Docker defaults to `8000`
+
+Render Docker Web Service setup:
+
+- Service type: Web Service
+- Runtime: Docker
+- Dockerfile path: `./Dockerfile`
+- Docker context: project root
+- Health check path: `/health` or `/api/healthz`
+
+Required Render environment variables:
+
+- `DATABASE_URL` - demo PostgreSQL connection string
+- `SESSION_SECRET` - long random string
+- `APP_PASS` - temporary password value used by the one-time user creation command
+- `CRM_USERNAME` - demo login username, for example `demo`
+
+Optional:
+
+- `APP_USER` and `APP_PASS` - simple fallback login credentials
+- `SESSION_COOKIE_SECURE=true`
+
+One-time temporary Start Command to initialize schema and create/update one demo user:
+
+```bash
+python init_db.py && python create_user.py "$APP_PASS" && gunicorn app:app --bind 0.0.0.0:${PORT:-8000}
+```
+
+One-time temporary Start Command to seed fake demo data:
+
+```bash
+python seed_demo_data.py && gunicorn app:app --bind 0.0.0.0:${PORT:-8000}
+```
+
+Permanent Docker Start Command:
+
+```bash
+gunicorn app:app --bind 0.0.0.0:${PORT:-8000}
+```
+
+Local Docker example:
+
+```bash
+docker build -t lawyer-crm-demo .
+docker run --rm -p 8000:8000 --env-file .env lawyer-crm-demo
+```
+
+Then open `http://localhost:8000`.
